@@ -1,3 +1,6 @@
+/*
+https://cdn.sparkfun.com/assets/b/3/0/b/a/DGCH-RED_datasheet.pdf
+*/
 module sr04(
     input clk,
     input reset,
@@ -9,21 +12,23 @@ module sr04(
 );
 
     parameter frequency = 16000000; // 16 Mhz
-    //parameter trigger_delay = frequency * 10 /1000000;
-    parameter trigger_delay = 10;
-    parameter echo_max_delay = 10;
+    parameter trigger_delay = frequency * 15 /1000000; /* 15us */
+    parameter max_delay = frequency; /* 1 second */
     
     reg [31:0] trigger_counter;
     reg [31:0] delay_counter;
 
-    localparam [1:0] 
+    localparam [2:0]
         STATE_IDLE = 0,
         STATE_RIZE_TRIGGER = 1,
         STATE_LOWER_TRIGGER = 2,
-        STATUS_WAIT_FOR_ECHO =3;
+        STATUS_WAIT_FOR_ECHO_UP = 3,
+        STATUS_WAIT_FOR_ECHO_DOWN = 4;
     
-    reg [1:0] state_reg;
+    reg [2:0] state_reg;
 
+
+    initial state_reg <= STATE_IDLE;
 
     always @(posedge clk) begin
         if (reset) begin
@@ -56,24 +61,42 @@ module sr04(
                     trigger_counter <= trigger_counter +1;
                     if (trigger_counter > trigger_delay +1)
                     begin
-                        state_reg <= STATUS_WAIT_FOR_ECHO;
+                        state_reg <= STATUS_WAIT_FOR_ECHO_UP;
                         sensor_trigger_out <= 0;
                         delay_counter <= 0;
                     end
                 end            
-                STATUS_WAIT_FOR_ECHO:
+                STATUS_WAIT_FOR_ECHO_UP:
                 begin
                     delay_counter <= delay_counter +1;
                     if (sensor_echo_in == 1)
                     begin
-                        value <= delay_counter;
-                        value_ok <= 1;
+                        state_reg <= STATUS_WAIT_FOR_ECHO_DOWN;
+                        delay_counter <= 0;
                     end
 
-                    if (delay_counter > echo_max_delay +1)
+                    if (delay_counter > max_delay +1)
                     begin
                         state_reg <= STATE_IDLE;
                     end
+                end
+                STATUS_WAIT_FOR_ECHO_DOWN:
+                begin
+                    delay_counter <= delay_counter +1;
+                    if (sensor_echo_in == 0)
+                    begin
+                        value <= delay_counter;
+                        value_ok <= 1;
+                        state_reg <= STATE_IDLE;
+                    end
+
+                    if (delay_counter > max_delay +1)
+                    begin
+                        state_reg <= STATE_IDLE;
+                    end
+                end
+                default:
+                begin
                 end
             endcase
         end

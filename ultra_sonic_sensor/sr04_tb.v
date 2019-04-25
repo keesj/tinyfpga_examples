@@ -18,7 +18,7 @@ wire trigger_out;
 reg echo_in;
 
 //-- Instantiation of the unit to test
-sr04 UUT (
+sr04 #(.frequency(1000)) UUT (
            .clk(clk),
            .reset(reset),
            .en(en),
@@ -34,12 +34,13 @@ initial begin
   $dumpfile(`DUMPSTR(`VCD_OUTPUT));
   $dumpvars(0, main_tb);
 
+  echo_in=0;
   reset =1;
   en=0;
   #1;
   reset =0;
   en =1;
-  #10;
+  #100;
   echo_in=1;
   #5;
   echo_in=0;

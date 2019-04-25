@@ -14,13 +14,23 @@ module top(
 
     reg reset;
     reg en = 1;
-    wire [31:0] value;
-    wire value_ok;
+    wire [31:0] sensor_value;
+    wire sensor_value_ok;
     initial reset =1;
 
 
+    reg [31:0] value;
+
     always @(posedge clk_16) begin
-        reset <= 0;
+        if (reset == 1) begin
+            reset <= 0;
+        end
+        else begin
+            if (sensor_value_ok == 1)
+            begin
+                value <= sensor_value;
+            end
+        end 
     end
 
     sr04 sens(
@@ -29,9 +39,7 @@ module top(
         .en(en),
         .sensor_trigger_out(sensor_trigger_out),
         .sensor_echo_in(sensor_echo_in),
-        .value(value),
-        .value_ok(value_ok)
+        .value(sensor_value),
+        .value_ok(sensor_value_ok)
     );
-
-
 endmodule
